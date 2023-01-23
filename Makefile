@@ -1,15 +1,18 @@
 
-.PHONY: compile clean runsyrk rungemm runsymv
+.PHONY: compile clean runsyrkusm runsyrk rungemm runsymv
 
 FLAGSMKL=-fsycl -DMKL_ILP64  -I"${MKLROOT}/include"
 LINKMKL=-L${MKLROOT}/lib/intel64 -lmkl_sycl -lmkl_intel_ilp64 -lmkl_sequential -lmkl_core -lsycl -lOpenCL -lpthread -lm -ldl
 
 
 
-compile: program_syrk.x program_gemm.x program_symv.x
+compile: program_syrk_usm.x program_syrk.x program_gemm.x program_symv.x
 
 clean:
 	rm -f *.x
+
+runsyrkusm: program_syrk_usm.x
+	while true; do ./$< || break; done
 
 runsyrk: program_syrk.x
 	while true; do ./$< || break; done
@@ -21,6 +24,9 @@ runsymv: program_symv.x
 	while true; do ./$< || break; done
 
 
+
+program_syrk_usm.x: source_syrk_usm.cpp Makefile
+	icpx -std=c++17 -g -O3 -fopenmp ${FLAGSMKL} $< -o $@ ${LINKMKL}
 
 program_syrk.x: source_syrk.cpp Makefile
 	icpx -std=c++17 -g -O3 -fopenmp ${FLAGSMKL} $< -o $@ ${LINKMKL}
